@@ -1,6 +1,7 @@
 package connect
 
 import (
+	"crypto/tls"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -26,6 +27,16 @@ func Provider() *schema.Provider {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("KAFKA_CONNECT_BASIC_AUTH_PASSWORD", ""),
 			},
+			"ssl_client_certificate": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("KAFKA_CONNECT_SSL_CLIENT_CERTIFICATE", ""),
+			},
+			"ssl_client_key": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("KAFKA_CONNECT_SSL_CLIENT_KEY", ""),
+			},
 		},
 		ConfigureFunc: providerConfigure,
 		ResourcesMap: map[string]*schema.Resource{
@@ -42,8 +53,23 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	c := kc.NewClient(addr)
 	user := d.Get("basic_auth_username").(string)
 	pass := d.Get("basic_auth_password").(string)
+
 	if user != "" && pass != "" {
 		c.SetBasicAuth(user, pass)
 	}
+
+	// certs
+	cert := d.Get("ssl_client_certificate").(string)
+	key := d.Get("ssl_client_key").(string)
+
+	if len(cert) > 0 && len(key) > 0 {
+		cert, err := tls.LoadX509KeyPair(cert, key)
+		if err != nil {
+			log.Fatalf("client: loadkeys: %s", err)
+		} else {
+			c.SetClientCertificates(cert)
+		}
+	}
+
 	return c, nil
 }
