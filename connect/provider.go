@@ -37,6 +37,11 @@ func Provider() *schema.Provider {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("KAFKA_CONNECT_SSL_CLIENT_KEY", ""),
 			},
+			"c": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("KAFKA_CONNECT_VERIFY_SERVER", true),
+			},
 		},
 		ConfigureFunc: providerConfigure,
 		ResourcesMap: map[string]*schema.Resource{
@@ -49,6 +54,7 @@ func Provider() *schema.Provider {
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	log.Printf("[INFO] Initializing KafkaConnect client")
+
 	address := d.Get("url").(string)
 	client := kc.NewClient(address)
 
@@ -58,7 +64,12 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		client.SetBasicAuth(user, pass)
 	}
 
-	// certs
+	verifyServer := d.Get("verify_server").(bool)
+	if !verifyServer {
+		client.SetInsecureSSL()
+	}
+
+	// client cert
 	certificate := d.Get("ssl_client_certificate").(string)
 	certificateKey := d.Get("ssl_client_key").(string)
 
