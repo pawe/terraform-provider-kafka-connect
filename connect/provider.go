@@ -49,27 +49,28 @@ func Provider() *schema.Provider {
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	log.Printf("[INFO] Initializing KafkaConnect client")
-	addr := d.Get("url").(string)
-	c := kc.NewClient(addr)
+	address := d.Get("url").(string)
+	client := kc.NewClient(address)
+
 	user := d.Get("basic_auth_username").(string)
 	pass := d.Get("basic_auth_password").(string)
-
 	if user != "" && pass != "" {
-		c.SetBasicAuth(user, pass)
+		client.SetBasicAuth(user, pass)
 	}
 
 	// certs
-	cert := d.Get("ssl_client_certificate").(string)
-	key := d.Get("ssl_client_key").(string)
+	certificate := d.Get("ssl_client_certificate").(string)
+	certificateKey := d.Get("ssl_client_key").(string)
 
-	if len(cert) > 0 && len(key) > 0 {
-		cert, err := tls.LoadX509KeyPair(cert, key)
-		if err != nil {
-			log.Fatalf("client: loadkeys: %s", err)
+	if certificate != "" && certificateKey != "" {
+		certificate, error := tls.LoadX509KeyPair(certificate, certificateKey)
+		if error != nil {
+			log.Printf("[ERROR] Loading certificate failed: %s", error)
+			return nil, error
 		} else {
-			c.SetClientCertificates(cert)
+			client.SetClientCertificates(certificate)
 		}
+		return client, error
 	}
-
-	return c, nil
+	return client, nil
 }
