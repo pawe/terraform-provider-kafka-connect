@@ -37,6 +37,11 @@ func Provider() *schema.Provider {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("KAFKA_CONNECT_SSL_CLIENT_KEY", ""),
 			},
+			"ssl_verify_server": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("KAFKA_CONNECT_VERIFY_SERVER", true),
+			},
 		},
 		ConfigureFunc: providerConfigure,
 		ResourcesMap: map[string]*schema.Resource{
@@ -57,7 +62,11 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		c.SetBasicAuth(user, pass)
 	}
 
-	// certs
+	verify := d.Get("ssl_verify_server").(bool)
+	if !verify {
+		c.SetInsecureSSL()
+	}
+
 	cert := d.Get("ssl_client_certificate_path").(string)
 	key := d.Get("ssl_client_key_path").(string)
 
