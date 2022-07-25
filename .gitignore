@@ -1,2 +1,4 @@
 !/examples/main.tf
 /examples/*
+.vscode/
+.DS_Store
